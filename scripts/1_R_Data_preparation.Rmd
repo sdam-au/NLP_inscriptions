@@ -1,0 +1,39 @@
+---
+title: "Data preparation"
+author: "Petra Hermankova"
+date: "10/08/2021"
+output:
+  html_document:
+    theme: united
+    toc: yes
+    toc_float: true
+    number_sections: true
+    toc_depth: 2
+    df_print: paged
+---
+
+```{r setup, echo=TRUE, message=FALSE}
+#devtools::install_github("sdam-au/sdam") # loading SDAM custom package, if not working try devtools::install_github("mplex/cedhar", subdir="pkg/sdam")
+#devtools::install_github("mplex/cedhar", subdir="pkg/sdam")
+library(tidyverse)
+library(sdam)
+library(jsonlite)
+```
+
+# Download the dataset published on Zenodo as JSON file
+```{r}
+list_json <- jsonlite::fromJSON("https://zenodo.org/record/4888168/files/EDH_text_cleaned_2021-01-21.json")
+EDH <- as_tibble(list_json)
+```
+
+# Create sample with 1000 random records
+```{r}
+EDHsample<- dplyr::sample_n(EDH, 1000)
+```
+
+# Save it locally for future use
+```{r}
+EDHsampleJSON<- jsonlite::toJSON(EDHsample, auto_unbox = TRUE)
+write(EDHsampleJSON, file="../data/EDH_random_1000_sample.json")
+```
+

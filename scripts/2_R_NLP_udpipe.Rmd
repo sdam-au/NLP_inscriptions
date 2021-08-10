@@ -1,0 +1,209 @@
+---
+title: "Lemmatization of the epigraphic text using Udpipe model"
+author: "Petra Hermankova"
+date: "10/8/2021"
+output:
+  html_document:
+    theme: united
+    toc: yes
+    toc_float: true
+    number_sections: true
+    toc_depth: 2
+    df_print: paged
+---
+
+```{r setup, echo=TRUE, message=FALSE}
+#devtools::install_github("sdam-au/sdam") # loading SDAM custom package, if not working try devtools::install_github("mplex/cedhar", subdir="pkg/sdam")
+#devtools::install_github("mplex/cedhar", subdir="pkg/sdam")
+library(tidyverse)
+library(sdam)
+library(jsonlite)
+library(udpipe)
+library(dplyr)
+```
+
+# Load the data
+
+```{r}
+list_json <- jsonlite::fromJSON("../data/EDH_random_1000_sample.json")
+EDH <- as_tibble(list_json)
+```
+
+Display the first 6 records
+```{r}
+head(EDH)
+```
+
+
+# Text mining using udpipe package
+source: https://cran.r-project.org/web/packages/udpipe/vignettes/udpipe-annotation.html#udpipe_-_general
+
+## Download model for given language
+Models available at `Straka, Milan and Straková, Jana, 2019, Universal Dependencies 2.5 Models for UDPipe (2019-12-06), LINDAT/CLARIAH-CZ digital library at the Institute of Formal and Applied Linguistics (ÚFAL), Faculty of Mathematics and Physics, Charles University, http://hdl.handle.net/11234/1-3131.`
+
+```{r, eval=FALSE}
+dl <- udpipe_download_model(udpipe_model_repo = "jwijffels/udpipe.models.ud.2.5" , language = "latin-proiel", model_dir = "../data/") # latin-proiel model
+
+dl2 <- udpipe_download_model(udpipe_model_repo = "jwijffels/udpipe.models.ud.2.5", language = "latin-perseus", model_dir = "../data/") # latin-perseus model
+```
+
+## Give the full path to the model and load it to R
+```{r}
+# perseus
+udmodel_latin_pers <- udpipe_load_model(file = "../data/latin-perseus-ud-2.5-191206.udpipe")
+
+# proiel
+udmodel_latin_proi <- udpipe_load_model(file = "../data/latin-proiel-ud-2.5-191206.udpipe")
+```
+
+## Anotate the text using UDpipe
+
+### Perseus model
+```{r}
+udpipe_text_pers <- as.data.frame(udpipe_annotate(udmodel_latin_pers, x = EDH$clean_text_interpretive_word))
+str(udpipe_text_pers)
+```
+
+
+### Proiel model
+```{r}
+udpipe_text_proi <- as.data.frame(udpipe_annotate(udmodel_latin_proi, x = EDH$clean_text_interpretive_word))
+str(udpipe_text_proi)
+```
+
+
+
+# Comparison of outcome of both models
+
+## Overview of linguistic word categories
+```{r}
+table(udpipe_text_pers$upos)
+table(udpipe_text_proi$upos)
+```
+
+### Nouns
+```{r}
+nouns_pers <- udpipe_text_pers %>% 
+  filter(udpipe_text_pers$upos == "NOUN") 
+nrow(nouns_pers)
+
+nouns_proi <- udpipe_text_proi %>% 
+  filter(udpipe_text_proi$upos == "NOUN") 
+nrow(nouns_proi)
+```
+
+### Verbs
+```{r}
+verbs_pers <- udpipe_text_pers %>% 
+  filter(udpipe_text_pers$upos == "VERB") 
+nrow(verbs_pers)
+verbs_proi <- udpipe_text_proi %>% 
+  filter(udpipe_text_proi$upos == "VERB") 
+nrow(verbs_proi)
+```
+
+## The most frequent of all word lemmata
+```{r}
+udpipe_text_pers %>% 
+  count(lemma, sort = TRUE) %>%
+  filter(n > 100) %>% 
+  mutate(lemma = reorder(lemma, n)) %>%
+  print()
+```
+
+```{r}
+udpipe_text_proi %>% 
+  count(lemma, sort = TRUE) %>%
+  filter(n > 100) %>% 
+  mutate(lemma = reorder(lemma, n)) %>%
+  print()
+```
+
+
+## The most frequent of nouns lemmata
+```{r}
+nouns_pers %>% 
+  count(lemma, sort = TRUE) %>%
+  filter(n > 100) %>% 
+  mutate(lemma = reorder(lemma, n)) %>%
+  print()
+```
+
+```{r}
+nouns_proi %>% 
+  count(lemma, sort = TRUE) %>%
+  filter(n > 100) %>% 
+  mutate(lemma = reorder(lemma, n)) %>%
+  print()
+```
+
+## The most frequent of verbs lemmata
+```{r}
+verbs_pers %>% 
+  count(lemma, sort = TRUE) %>%
+  filter(n > 100) %>% 
+  mutate(lemma = reorder(lemma, n)) %>%
+  print()
+```
+```{r}
+verbs_proi %>% 
+  count(lemma, sort = TRUE) %>%
+  filter(n > 100) %>% 
+  mutate(lemma = reorder(lemma, n)) %>%
+  print()
+```
+
+
+## Join the entire dataset with the NLP UD pipe output
+```{r}
+udpipe_text_pers <- udpipe_text_pers %>% 
+  mutate(insc_id = (as.numeric(str_replace(doc_id, pattern = "doc", replacement = ""))))
+
+EDH_x <- EDH %>% 
+  mutate(id_num = (as.numeric(str_replace(id, pattern = "HD", replacement = ""))))
+
+EDH_pers <- full_join(EDH_x, udpipe_text_pers, by = c("id_num" = "insc_id"))
+```
+
+```{r}
+udpipe_text_proi <- udpipe_text_proi %>% 
+  mutate(insc_id = (as.numeric(str_replace(doc_id, pattern = "doc", replacement = ""))))
+
+EDH_x <- EDH %>% 
+  mutate(id_num = (as.numeric(str_replace(id, pattern = "HD", replacement = ""))))
+
+EDH_proi <- full_join(EDH_x, udpipe_text_proi, by = c("id_num" = "insc_id"))
+```
+
+## Making subset with relevant attributes 
+ - the full dataset is too big for R to be processed as JSON file
+```{r}
+EDH_selection_pers <- EDH_pers %>% 
+  select(id_num, people, coordinates, not_before, not_after, type_of_inscription_clean, type_of_inscription_certainty, material_clean, type_of_monument_clean, type_of_monument_certainty, province_label_clean, province_label_certainty, findspot_ancient_clean, findspot_ancient_certainty, clean_text_interpretive_word, doc_id, paragraph_id, sentence_id, sentence, token_id, token, lemma, upos, xpos, feats, head_token_id, dep_rel, deps, misc)
+
+EDH_selection_proi <- EDH_proi %>% 
+  select(id_num, people, coordinates, not_before, not_after, type_of_inscription_clean, type_of_inscription_certainty, material_clean, type_of_monument_clean, type_of_monument_certainty, province_label_clean, province_label_certainty, findspot_ancient_clean, findspot_ancient_certainty, clean_text_interpretive_word, doc_id, paragraph_id, sentence_id, sentence, token_id, token, lemma, upos, xpos, feats, head_token_id, dep_rel, deps, misc)
+```
+
+
+# Saving as JSON
+```{r}
+EDH_pers_json <- jsonlite::toJSON(EDH_selection_pers, auto_unbox = TRUE)
+write(EDH_pers_json, file="../data/EDH_sample_perseus_UDpipe.json")
+
+# saving subset of the dataset
+EDH_proi_json <- jsonlite::toJSON(EDH_selection_proi, auto_unbox = TRUE)
+write(EDH_proi_json, file="../data/EDH_sample_proiel_UDpipe.json")
+```
+
+
+
+
+
+
+
+
+
+
+
+
