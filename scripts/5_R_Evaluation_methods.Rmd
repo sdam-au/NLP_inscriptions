@@ -1,0 +1,49 @@
+---
+title: "Evaluation of Latin NLP models"
+author: "Petra Hermankova"
+date: "21/01/2021"
+output:
+  html_document:
+    theme: united
+    toc: yes
+    toc_float: true
+    number_sections: true
+    toc_depth: 2
+    df_print: paged
+---
+
+```{r setup, echo=TRUE, message=FALSE}
+devtools::install_github("sdam-au/sdam") # loading SDAM custom package, if not working try 
+# devtools::install_github("mplex/cedhar", subdir="pkg/sdam")
+library(tidyverse)
+library(sdam)
+library(jsonlite)
+```
+
+# Loading Data
+
+## Dataset 1
+```{r}
+list_json <- jsonlite::fromJSON("../data/EDH_sample_perseus_UDpipe.json")
+EDH_pers <- as_tibble(list_json)
+```
+
+## Dataset 2
+```{r}
+list_json2 <- jsonlite::fromJSON("../data/EDH_sample_proiel_UDpipe.json")
+EDH_proi <- as_tibble(list_json2)
+```
+
+## Dataset 3
+```{r}
+### CLTK?
+```
+
+## Dataset 4
+```{r}
+### Our method
+```
+
+# Evaluation of results
+
+
