@@ -20,6 +20,7 @@ library(sdam)
 library(jsonlite)
 library(udpipe)
 library(dplyr)
+library(reticulate)
 ```
 
 # Load the data
@@ -34,6 +35,33 @@ Display the first 6 records
 head(EDH)
 ```
 
+```{python}
+import geopandas as gpd
+
+LIRE = gpd.read_file("https://zenodo.org/record/5074774/files/LIREg.geojson?download=1", driver="GeoJSON")
+```
+
+```{python}
+LIRE["clean_text_interpretive_word"]
+```
+
+```{python}
+LIREm = LIRE["clean_text_interpretive_word"]
+LIREm
+```
+
+```{r}
+py$LIREm -> LIREm
+```
+```{r}
+LIRE<- as.data.frame(rapply(LIREm, unlist))
+LIRE$clean_text_interpretive_word<- LIRE$`rapply(LIREm, unlist)`
+LIRE$`rapply(LIREm, unlist)` <- NULL
+```
+
+```{r}
+head(LIRE)
+```
 
 # Text mining using udpipe package
 source: https://cran.r-project.org/web/packages/udpipe/vignettes/udpipe-annotation.html#udpipe_-_general
@@ -60,16 +88,70 @@ udmodel_latin_proi <- udpipe_load_model(file = "../data/latin-proiel-ud-2.5-1912
 
 ### Perseus model
 ```{r}
-udpipe_text_pers <- as.data.frame(udpipe_annotate(udmodel_latin_pers, x = EDH$clean_text_interpretive_word))
+udpipe_text_pers <- as.data.frame(udpipe_annotate(udmodel_latin_pers, x = LIRE$clean_text_interpretive_word))
 str(udpipe_text_pers)
 ```
 
 
 ### Proiel model
 ```{r}
-udpipe_text_proi <- as.data.frame(udpipe_annotate(udmodel_latin_proi, x = EDH$clean_text_interpretive_word))
+udpipe_text_proi <- as.data.frame(udpipe_annotate(udmodel_latin_proi, x = LIRE$clean_text_interpretive_word))
 str(udpipe_text_proi)
 ```
+
+
+## Filtering for occupations
+
+```{r}
+library(googlesheets4)
+gs4_deauth() # de-uthorized mode, no need of authentication token (if the spreadsheet is public)
+occupation<- read_sheet("https://docs.google.com/spreadsheets/d/1nONTEwp42CVnq3iCiONrFbJedIcYtBV-l4Bil5mU7Eo/edit?usp=sharing", sheet = "Occupation")
+
+```
+
+
+```{r}
+occ<- occupation$Term
+occ[1:10]
+```
+
+```{r}
+occup_text_pers<- udpipe_text_pers %>% 
+  filter(lemma %in% occ)
+nrow(occup_text_pers)
+```
+
+
+```{r}
+occup_text_proi<- udpipe_text_proi %>% 
+  filter(lemma %in% occ)
+nrow(occup_text_proi)
+```
+
+Filtered out personal names
+```{r}
+occup_text_pers %>% 
+  filter(token != str_subset(occup_text_pers$token, "\\b[:upper:]")) %>% 
+  count(lemma, token, sort=T)
+```
+
+```{r}
+occup_text_proi %>% 
+  filter(token != str_subset(occup_text_proi$token, "\\b[:upper:]")) %>% 
+  count(lemma, token, sort=T)
+```
+
+
+
+
+
+
+
+
+
+
+
+----------
 
 
 
@@ -195,15 +277,4 @@ write(EDH_pers_json, file="../data/EDH_sample_perseus_UDpipe.json")
 EDH_proi_json <- jsonlite::toJSON(EDH_selection_proi, auto_unbox = TRUE)
 write(EDH_proi_json, file="../data/EDH_sample_proiel_UDpipe.json")
 ```
-
-
-
-
-
-
-
-
-
-
-
 
