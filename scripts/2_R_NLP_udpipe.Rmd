@@ -132,23 +132,117 @@ Filtered out personal names
 ```{r}
 occup_text_pers %>% 
   filter(token != str_subset(occup_text_pers$token, "\\b[:upper:]")) %>% 
-  count(lemma, token, sort=T)
+  count(lemma, sort=T)
 ```
+```{r}
+occup_text_proi %>% 
+  filter(token != str_subset(occup_text_proi$token, "\\b[:upper:]")) %>% 
+  count(lemma, sort=T)
+```
+
+```{r}
+library(tidytext)
+occup_text_pers %>% 
+  filter(token != str_subset(occup_text_pers$token, "\\b[:upper:]")) %>% 
+  filter(lemma == "curator") %>% 
+  unnest_tokens(bigram, sentence, token = "ngrams", n = 2) %>% 
+  count(bigram, sort=T)
+```
+
 
 ```{r}
 occup_text_proi %>% 
   filter(token != str_subset(occup_text_proi$token, "\\b[:upper:]")) %>% 
-  count(lemma, token, sort=T)
+  filter(lemma == "curator") %>% 
+  unnest_tokens(bigram, sentence, token = "ngrams", n = 2) %>% 
+  count(bigram, sort=T)
 ```
 
 
 
+# Saving as JSON
+```{r}
+occup_text_pers <- jsonlite::toJSON(occup_text_pers, auto_unbox = TRUE)
+write(occup_text_pers, file="../data/LIRE_occup_perseus_UDpipe.json")
+
+occup_text_proi <- jsonlite::toJSON(occup_text_proi, auto_unbox = TRUE)
+write(occup_text_proi, file="../data/LIRE_occup_proiel_UDpipe.json")
+```
 
 
 
+## Asclepius
 
+```{r}
+library(googlesheets4)
+gs4_deauth() # de-uthorized mode, no need of authentication token (if the spreadsheet is public)
+asclepius<- read_sheet("https://docs.google.com/spreadsheets/d/1vy23xEi5QHkT5cAZIl29EoIWKEi96hloNI-5-FdAImo/edit?usp=sharing", sheet = "asclepius")
+apollo<- read_sheet("https://docs.google.com/spreadsheets/d/1vy23xEi5QHkT5cAZIl29EoIWKEi96hloNI-5-FdAImo/edit?usp=sharing", sheet = "apollo")
+jupiter<- read_sheet("https://docs.google.com/spreadsheets/d/1vy23xEi5QHkT5cAZIl29EoIWKEi96hloNI-5-FdAImo/edit?usp=sharing", sheet = "jupiter")
 
+```
 
+```{r}
+asclepius
+
+asc_text_pers<- udpipe_text_pers %>% 
+  filter(lemma %in% asclepius$name_variants)
+nrow(asc_text_pers)
+
+asc_text_pers %>% 
+  count(token, lemma, sort=T)
+```
+
+```{r}
+asc_text_proi<- udpipe_text_proi %>% 
+  filter(lemma %in% asclepius$name_variants)
+nrow(asc_text_proi)
+
+asc_text_proi %>% 
+  count(token, lemma, sort=T)
+```
+
+```{r}
+apoll_text_pers<- udpipe_text_pers %>% 
+  filter(lemma %in% apollo$name_variants)
+nrow(apoll_text_pers)
+
+apoll_text_pers %>% 
+  count(token, lemma, sort=T)
+```
+
+```{r}
+apoll_text_proi<- udpipe_text_proi %>% 
+  filter(lemma %in% apollo$name_variants)
+nrow(apoll_text_proi)
+
+apoll_text_proi %>% 
+  count(token, lemma, sort=T)
+```
+
+```{r}
+jupiter$name_variants
+
+jup_text_proi<- udpipe_text_proi %>% 
+  filter(sentence %in% jupiter$name_variants)
+nrow(jup_text_proi)
+
+jup_text_proi %>% 
+  count(sentence, sort=T)
+```
+
+```{r}
+jup_text_pers<- udpipe_text_pers %>% 
+  filter(sentence %in% jupiter$name_variants)
+nrow(jup_text_pers)
+
+jup_text_pers %>% 
+  count(sentence, sort=T)
+```
+```{r}
+udpipe_text_proi %>% 
+  filter(token %in% "Iovem") 
+```
 
 
 ----------
