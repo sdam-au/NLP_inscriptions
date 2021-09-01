@@ -15,12 +15,14 @@ output:
 ```{r setup, echo=TRUE, message=FALSE}
 #devtools::install_github("sdam-au/sdam") # loading SDAM custom package, if not working try devtools::install_github("mplex/cedhar", subdir="pkg/sdam")
 #devtools::install_github("mplex/cedhar", subdir="pkg/sdam")
+install.packages("tidytext")
 library(tidyverse)
 library(sdam)
 library(jsonlite)
 library(udpipe)
 library(dplyr)
 library(reticulate)
+library(tidytext)
 ```
 
 # Load the data
@@ -100,6 +102,7 @@ str(udpipe_text_proi)
 ```
 
 
+
 ## Filtering for occupations
 
 ```{r}
@@ -128,38 +131,6 @@ occup_text_proi<- udpipe_text_proi %>%
 nrow(occup_text_proi)
 ```
 
-Filtered out personal names
-```{r}
-occup_text_pers %>% 
-  filter(token != str_subset(occup_text_pers$token, "\\b[:upper:]")) %>% 
-  count(lemma, sort=T)
-```
-```{r}
-occup_text_proi %>% 
-  filter(token != str_subset(occup_text_proi$token, "\\b[:upper:]")) %>% 
-  count(lemma, sort=T)
-```
-
-```{r}
-library(tidytext)
-occup_text_pers %>% 
-  filter(token != str_subset(occup_text_pers$token, "\\b[:upper:]")) %>% 
-  filter(lemma == "curator") %>% 
-  unnest_tokens(bigram, sentence, token = "ngrams", n = 2) %>% 
-  count(bigram, sort=T)
-```
-
-
-```{r}
-occup_text_proi %>% 
-  filter(token != str_subset(occup_text_proi$token, "\\b[:upper:]")) %>% 
-  filter(lemma == "curator") %>% 
-  unnest_tokens(bigram, sentence, token = "ngrams", n = 2) %>% 
-  count(bigram, sort=T)
-```
-
-
-
 # Saving as JSON
 ```{r}
 occup_text_pers <- jsonlite::toJSON(occup_text_pers, auto_unbox = TRUE)
@@ -170,6 +141,102 @@ write(occup_text_proi, file="../data/LIRE_occup_proiel_UDpipe.json")
 ```
 
 
+## Loading already existing lemmatized datasets 
+
+```{r}
+json_pers <- fromJSON("../data/LIRE_occup_perseus_UDpipe.json")
+occup_text_pers <- as.tibble(json_pers)
+
+json_proi <- fromJSON("../data/LIRE_occup_proiel_UDpipe.json")
+occup_text_proi <- as.tibble(json_proi)
+```
+
+
+## Filtering out personal names
+```{r}
+occup_text_pers %>% 
+  filter(token != str_subset(occup_text_pers$token, "\\b[:upper:]")) %>% 
+  count(lemma, sort=T)
+```
+
+```{r}
+occup_text_proi %>% 
+  filter(token != str_subset(occup_text_proi$token, "\\b[:upper:]")) %>% 
+  count(lemma, sort=T)
+```
+
+## Exploring context of curator
+```{r}
+occup_text_pers %>% 
+  filter(token != str_subset(occup_text_pers$token, "\\b[:upper:]")) %>% 
+  filter(lemma == "curator") %>% 
+  unnest_tokens(bigram, sentence, token = "ngrams", n = 2) %>% 
+  count(bigram, sort=T)
+```
+
+
+```{r}
+occup_text_proi %>% 
+  filter(token != str_subset(occup_text_proi$token, "\\b[:upper:]")) %>% 
+  filter(lemma == "curator") %>% 
+  unnest_tokens(bigram, sentence, token = "ngrams", n = 2) %>% 
+  count(bigram, sort=T)
+```
+
+
+
+## Exploring context of medicus
+
+```{r}
+occup_text_pers %>% 
+  filter(token != str_subset(occup_text_pers$token, "\\b[:upper:]")) %>% 
+  filter(lemma == "medicus") %>% 
+  unnest_tokens(bigram, sentence, token = "ngrams", n = 2) %>% 
+  count(bigram, sort=T)
+```
+
+
+
+```{r}
+occup_text_pers %>% 
+  filter(token != str_subset(occup_text_pers$token, "\\b[:upper:]")) %>% 
+  filter(lemma == "medicus") %>% 
+  count(token, sort=T)
+```
+
+### Women doctors
+```{r}
+occup_text_pers %>% 
+  filter(token != str_subset(occup_text_pers$token, "\\b[:upper:]")) %>% 
+  filter(token == "medica" | token == "medicae" | token == "medicas") %>% 
+  select(sentence)
+```
+
+```{r}
+occup_text_proi %>% 
+  filter(token != str_subset(occup_text_proi$token, "\\b[:upper:]")) %>% 
+  filter(lemma == "medicus") %>%
+  filter(token == "medica" | token == "medicae" | token == "medicas") %>% 
+  select(sentence) 
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+---
 
 ## Asclepius
 
